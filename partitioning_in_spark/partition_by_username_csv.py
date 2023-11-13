@@ -20,25 +20,20 @@ USERNAME_RGX = r'username=(.*?\/)'
 
 spark = SparkSession \
     .builder \
-    .appName('spark-bigquery-demo-local2') \
+    .appName('Spliter') \
     .config("spark.jars", "https://storage.googleapis.com/hadoop-lib/gcs/gcs-connector-hadoop3-latest.jar") \
     .getOrCreate()
 
 
-# Use the Cloud Storage bucket for temporary BigQuery export data used
-# by the connector.
-# spark.conf.set('temporaryGcsBucket', TEMP_BUCKET)
-
-
 def main():
-    # df = spark.read \
-    #     .option("header", "true") \
-    #     .csv(CSV100K_GSUTIL_URI)
-    #
-    # df.write.option("header", True) \
-    #     .partitionBy("username") \
-    #     .mode("overwrite") \
-    #     .csv(PARTITIONED_CSVS_GSUTIL_URI)
+    df = spark.read \
+        .option("header", "true") \
+        .csv(CSV100K_GSUTIL_URI)
+
+    df.write.option("header", True) \
+        .partitionBy("username") \
+        .mode("overwrite") \
+        .csv(PARTITIONED_CSVS_GSUTIL_URI)
 
     gcs_client = storage.Client()
 
@@ -49,19 +44,15 @@ def main():
     usernames_list = [re.findall(pattern=USERNAME_RGX, string=x.name) for x in csvs]
     usernames = [x[0].rstrip('/') for x in usernames_list if x]
 
+    duplicates = [x for x in usernames if usernames.count(x) > 1]
+
     print(f'csv==usernames: {len(csvs) == len(list(set(usernames)))}')
     print(f'Len(csvs): {len(csvs)}')
     print(f'Len(usernames): {len(usernames)}')
     print(f'Unique Len(usernames): {len(list(set(usernames)))}')
+    print(f'Duplicates: {duplicates}')
 
     print(usernames)
-
-    # df = spark.read \
-    #     .option("header", "true") \
-    #     .csv(PARTITIONED_CSVS_GSUTIL_URI)
-    #
-    # df.printSchema()
-    # print(f'Size: {df.count()}')
 
 
 if __name__ == '__main__':
